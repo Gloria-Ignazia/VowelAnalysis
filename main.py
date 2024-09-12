@@ -8,18 +8,18 @@ Created on Mon Sep  9 10:38:17 2024
 import numpy as np
 #import scamp
 #import os
-import librosa as lr
+#import librosa as lr
 import plotly.graph_objects as go
-import scipy.io
+#import scipy.io
 #import sounddevice as sd
 #from scamp import *
-from os import listdir
-from os.path import isfile, join
-import os
-from scipy.io import wavfile
+#from os import listdir
+#from os.path import isfile, join
+#import os
+#from scipy.io import wavfile
 from plotly.subplots import make_subplots
 import librosa
-import librosa.display
+#import librosa.display
 import streamlit as st
 #import matplotlib.pyplot as plt
 from PIL import Image
@@ -27,38 +27,38 @@ from PIL import Image
 #voicepath = "G:\\Andere Computer\\Mein Laptop\\Projekte\\Juta\\Reaper\\Renderings\\Vowels"
 voicepath = './data/Vowels'
 names = ['Gabriele','Ieva','Karolina M.','Karolina R.','Lina','Neringa','Beata']
-new_data_load = False
-if new_data_load:
-    def load_wav_files(directory):#directory = voicepath
-        folder_arrays = {}
+# new_data_load = False
+# if new_data_load:
+#     def load_wav_files(directory):#directory = voicepath
+#         folder_arrays = {}
     
-        # Traverse through all subdirectories in the given directory
-        for folder_name in os.listdir(directory):
-            folder_path = os.path.join(directory, folder_name)
+#         # Traverse through all subdirectories in the given directory
+#         for folder_name in os.listdir(directory):
+#             folder_path = os.path.join(directory, folder_name)
     
-            # Check if it's a directory
-            if os.path.isdir(folder_path):
-                wav_arrays = []
+#             # Check if it's a directory
+#             if os.path.isdir(folder_path):
+#                 wav_arrays = []
                 
-                # Traverse files within the folder
-                for file_name in os.listdir(folder_path):
-                    if file_name.endswith(".wav"):
-                        file_path = os.path.join(folder_path, file_name)
+#                 # Traverse files within the folder
+#                 for file_name in os.listdir(folder_path):
+#                     if file_name.endswith(".wav"):
+#                         file_path = os.path.join(folder_path, file_name)
     
-                        # Read the wav file and store the data as a NumPy array
-                        sample_rate, data = wavfile.read(file_path)
-                        wav_arrays.append(data)
+#                         # Read the wav file and store the data as a NumPy array
+#                         sample_rate, data = wavfile.read(file_path)
+#                         wav_arrays.append(data)
                 
-                # Store the list of NumPy arrays (for each wav file) with the folder name as the key
-                folder_arrays[folder_name] = np.array(wav_arrays)
+#                 # Store the list of NumPy arrays (for each wav file) with the folder name as the key
+#                 folder_arrays[folder_name] = np.array(wav_arrays)
         
-        return folder_arrays
+#         return folder_arrays
     
         
-    folder_wav_data = load_wav_files(voicepath)
-    np.savez("./data/folder_wav_data.npz",**folder_wav_data)
-else:
-    folder_wav_data=np.load("./data/folder_wav_data.npz")#"G:\\Andere Computer\\Mein Laptop\\Projekte\\Juta\\Python\\folder_wav_data.npz")
+#     folder_wav_data = load_wav_files(voicepath)
+#     np.savez("./data/folder_wav_data.npz",**folder_wav_data)
+# else:
+folder_wav_data=np.load("./data/folder_wav_data.npz")#"G:\\Andere Computer\\Mein Laptop\\Projekte\\Juta\\Python\\folder_wav_data.npz")
 
 n_fft = 2048
 hop_length = int(n_fft/4)
@@ -163,58 +163,58 @@ for ii,vow in enumerate(vowels):
 # Seitenaufbau:
     # sidebar -> auswahl vowel
     # anzeige -> alle spektrogramme nebeneinander, alle means darunter in einem fenster
-from music21 import stream, chord, pitch
+#from music21 import stream, chord, pitch
 # Funktion, um Frequenz in Noten und Cent-Abweichung zu konvertieren
-def frequency_to_pitch_and_cents(frequency):
-    p = pitch.Pitch()
-    p.frequency = frequency
-    cent_diff = round(p.microtone.cents)  # Cent-Abweichung
-    return p, cent_diff
-def write_score(frequencies,title):
-    # Beispiel: Eingabe eines NumPy-Arrays mit 8 Frequenzen
-    #frequencies = np.array([440, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.26])    
-    # Konvertiere Frequenzen in Noten und Cent-Abweichungen
-    pitches = []
-    cent_values = []
-    for freq in frequencies:
-        p, cent_diff = frequency_to_pitch_and_cents(freq)
-        pitches.append(p)
-        cent_values.append(cent_diff)    
-    # Erstelle einen Akkord aus den Noten
-    akkord = chord.Chord(pitches)    
-    # Füge Cent-Angaben als Text zu den einzelnen Noten im Akkord hinzu
-    for i, p in enumerate(akkord.pitches):
-        if cent_values[i] != 0:
-            p.microtone = pitch.Microtone(cent_values[i])    
-    # Erstelle einen Notenstream (Partitur) und füge den Akkord hinzu
-    partitur = stream.Score()
-    part = stream.Part()
-    measure = stream.Measure()    
-    # Füge den Akkord (alle Noten gleichzeitig) in die Partitur ein
-    akkord.addLyric(" ".join([f"{cent} c" for cent in cent_values]))  # Füge Cent-Text hinzu
-    measure.append(akkord)
-    part.append(measure)
-    partitur.append(part)    
-    # Zeige die Partitur an (falls MuseScore oder ein MusicXML-Viewer installiert ist)
-    #partitur.show()    
-    # Speichere die Partitur als MusicXML
-    partitur.write('musicxml', fp=title+'.xml')
-scorewriting = False
-if scorewriting == True:
-    f_array = np.zeros((len(vowels),len(names),8))
-    for iv,vv in enumerate(vowels):#iv=0
-        for iis,ss in enumerate(names):#iis=0
-            frequ_array = FF[iv,:,iis]
-            for kk,ff in enumerate(frequ_array):
-                if frequ_array[kk]<900:
-                    f_array[iv,iis,kk]=frequ_array[kk]
-                elif frequ_array[kk]<900*2:
-                    f_array[iv,iis,kk]=frequ_array[kk]/2
-                elif frequ_array[kk]<900*4:
-                    f_array[iv,iis,kk]=frequ_array[kk]/4   
-                else:
-                    f_array[iv,iis,kk]=frequ_array[kk]/8  
-            write_score(np.sort(f_array[iv,iis,:]),'vowel_'+vowels[iv]+'_singer_'+names[iis])
+# def frequency_to_pitch_and_cents(frequency):
+#     p = pitch.Pitch()
+#     p.frequency = frequency
+#     cent_diff = round(p.microtone.cents)  # Cent-Abweichung
+#     return p, cent_diff
+# def write_score(frequencies,title):
+#     # Beispiel: Eingabe eines NumPy-Arrays mit 8 Frequenzen
+#     #frequencies = np.array([440, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.26])    
+#     # Konvertiere Frequenzen in Noten und Cent-Abweichungen
+#     pitches = []
+#     cent_values = []
+#     for freq in frequencies:
+#         p, cent_diff = frequency_to_pitch_and_cents(freq)
+#         pitches.append(p)
+#         cent_values.append(cent_diff)    
+#     # Erstelle einen Akkord aus den Noten
+#     akkord = chord.Chord(pitches)    
+#     # Füge Cent-Angaben als Text zu den einzelnen Noten im Akkord hinzu
+#     for i, p in enumerate(akkord.pitches):
+#         if cent_values[i] != 0:
+#             p.microtone = pitch.Microtone(cent_values[i])    
+#     # Erstelle einen Notenstream (Partitur) und füge den Akkord hinzu
+#     partitur = stream.Score()
+#     part = stream.Part()
+#     measure = stream.Measure()    
+#     # Füge den Akkord (alle Noten gleichzeitig) in die Partitur ein
+#     akkord.addLyric(" ".join([f"{cent} c" for cent in cent_values]))  # Füge Cent-Text hinzu
+#     measure.append(akkord)
+#     part.append(measure)
+#     partitur.append(part)    
+#     # Zeige die Partitur an (falls MuseScore oder ein MusicXML-Viewer installiert ist)
+#     #partitur.show()    
+#     # Speichere die Partitur als MusicXML
+#     partitur.write('musicxml', fp=title+'.xml')
+# scorewriting = False
+# if scorewriting == True:
+#     f_array = np.zeros((len(vowels),len(names),8))
+#     for iv,vv in enumerate(vowels):#iv=0
+#         for iis,ss in enumerate(names):#iis=0
+#             frequ_array = FF[iv,:,iis]
+#             for kk,ff in enumerate(frequ_array):
+#                 if frequ_array[kk]<900:
+#                     f_array[iv,iis,kk]=frequ_array[kk]
+#                 elif frequ_array[kk]<900*2:
+#                     f_array[iv,iis,kk]=frequ_array[kk]/2
+#                 elif frequ_array[kk]<900*4:
+#                     f_array[iv,iis,kk]=frequ_array[kk]/4   
+#                 else:
+#                     f_array[iv,iis,kk]=frequ_array[kk]/8  
+#             write_score(np.sort(f_array[iv,iis,:]),'vowel_'+vowels[iv]+'_singer_'+names[iis])
 
 
 
