@@ -139,6 +139,9 @@ typicalv=np.array(['i','e','a','o','u','ae','a_','e_'])
 # find formant frequencies
 from scipy.signal import find_peaks
 tolerance = 300
+timax = np.arange(2*fs)*1/fs
+sines = np.zeros((len(vowels),len(names),2*fs))
+sines_transp = np.zeros((len(vowels),len(names),2*fs))
 for ii,vow in enumerate(vowels):
     #print(vow)
     idxt = np.argwhere(typicalv==vow)
@@ -156,7 +159,20 @@ for ii,vow in enumerate(vowels):
            
             FF[ii,ip,jj]= frequs[np.argmax(curve)+fidx_min]
             FFi[ii,ip,jj]=np.argmax(curve)+fidx_min
-            
+            sines[ii,jj,:]=sines[ii,jj,:]+np.sin(2*np.pi*FF[ii,ip,jj]*timax)
+            #transposed -->
+            fo = FF[ii,ip,jj].copy()
+            if fo<900:
+                ft=fo
+            elif fo<900*2:
+                ft=fo/2
+            elif fo<900*4:
+                ft=fo/4   
+            else:
+                ft=fo/8 
+            sines_transp[ii,jj,:]=sines_transp[ii,jj,:]+np.sin(2*np.pi*ft*timax)
+sines = sines/np.max(np.abs(sines))
+sines_transp = sines_transp/np.max(np.abs(sines_transp))
 
         
 #vowels = np.array(['a','ae','e','i'])# wie in Ordner vowels sortiert   
@@ -249,6 +265,17 @@ def streamlit_fun():
     st.write('Typical values for vowel '+vowels[chosenVowel]+': '+str(peaks))
     figm.update_layout(xaxis=dict(range=[peaks[0]-100, peaks[7]+100]))
     st.write(figm)
+    cols2 = st.columns(7)
+    for i,col in enumerate(cols2):
+        with col:
+            st.write(names[i])
+            #st.write(specFig_matrix[i][chosenVowel])
+            st.audio(sines[chosenVowel,i,:],sample_rate=fs)
+    for i,col in enumerate(cols2):
+        with col:
+            st.write(names[i]+' transposed')
+            #st.write(specFig_matrix[i][chosenVowel])
+            st.audio(sines_transp[chosenVowel,i,:],sample_rate=fs)
     image = Image.open('./data/images/a_beata.png')
     st.image(image, caption='Akkord mit Cent-Abweichungen')
 
