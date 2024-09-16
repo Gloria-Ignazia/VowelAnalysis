@@ -26,7 +26,7 @@ from PIL import Image
 
 #voicepath = "G:\\Andere Computer\\Mein Laptop\\Projekte\\Juta\\Reaper\\Renderings\\Vowels"
 voicepath = './data/Vowels'
-names = ['Gabriele','Ieva','Karolina M.','Karolina R.','Lina','Neringa','Beata']
+names = ['Gabriele','Ieva','Karolina M.','Karolina R.','Lina','Neringa','Beata','Onute']
 # new_data_load = False
 # if new_data_load:
 #     def load_wav_files(directory):#directory = voicepath
@@ -44,7 +44,7 @@ names = ['Gabriele','Ieva','Karolina M.','Karolina R.','Lina','Neringa','Beata']
 #                 for file_name in os.listdir(folder_path):
 #                     if file_name.endswith(".wav"):
 #                         file_path = os.path.join(folder_path, file_name)
-    
+#                         print(file_path)
 #                         # Read the wav file and store the data as a NumPy array
 #                         sample_rate, data = wavfile.read(file_path)
 #                         wav_arrays.append(data)
@@ -73,6 +73,8 @@ allaudio = []
 vowels = []
 allmeans = [None for _ in np.arange(4)] 
 for folder, arrays in folder_wav_data.items():
+    #print(folder)
+    print(arrays.shape)
     vowels.append(folder)
     #print(f"Folder: {folder}, Number of WAV files: {len(arrays)}")
     allaudio.append([])
@@ -121,7 +123,7 @@ for folder, arrays in folder_wav_data.items():
 # Formantfrequenzen für die Vokale
 # Die Reihenfolge der Vokale in den Zeilen: /i/, /e/, /a/, /o/, /u/, /ae/, /ɒ/, /ɘ/
 formant_frequencies = np.array([
-    [300, 2300, 2900, 3500, 4000, 4500, 5000, 5500],  # /i/
+    [400, 2300, 2900, 3500, 4000, 4500, 5000, 5500],  # /i/
     [400, 1900, 2500, 3100, 3600, 4100, 4600, 5100],  # /e/
     [700, 1200, 2600, 3200, 3700, 4200, 4700, 5200],  # /a/
     [600, 800, 2400, 3000, 3500, 4000, 4500, 5000],   # /o/
@@ -150,7 +152,7 @@ for ii,vow in enumerate(vowels):
         peak_indices,_=find_peaks(allmeans[ii][jj])
         found_peaks=[]
         for ip,p in enumerate(peaks):
-            tol = 299
+            tol = int(p*0.1)
             fidx = np.argmin(np.abs(p-frequs))
             fidx_min =  np.argmin(np.abs((p-tol)-frequs))
             fidx_max =  np.argmin(np.abs((p+tol)-frequs))
@@ -162,11 +164,11 @@ for ii,vow in enumerate(vowels):
             sines[ii,jj,:]=sines[ii,jj,:]+np.sin(2*np.pi*FF[ii,ip,jj]*timax)
             #transposed -->
             fo = FF[ii,ip,jj].copy()
-            if fo<900:
+            if fo<784:
                 ft=fo
-            elif fo<900*2:
+            elif fo<784*2:
                 ft=fo/2
-            elif fo<900*4:
+            elif fo<784*4:
                 ft=fo/4   
             else:
                 ft=fo/8 
@@ -174,65 +176,119 @@ for ii,vow in enumerate(vowels):
 sines = sines/np.max(np.abs(sines))
 sines_transp = sines_transp/np.max(np.abs(sines_transp))
 
-        
-#vowels = np.array(['a','ae','e','i'])# wie in Ordner vowels sortiert   
-# Seitenaufbau:
-    # sidebar -> auswahl vowel
-    # anzeige -> alle spektrogramme nebeneinander, alle means darunter in einem fenster
-#from music21 import stream, chord, pitch
-# Funktion, um Frequenz in Noten und Cent-Abweichung zu konvertieren
+#  # COMMENT FROM HERE       
+# #vowels = np.array(['a','ae','e','i'])# wie in Ordner vowels sortiert   
+# # Seitenaufbau:
+#     # sidebar -> auswahl vowel
+#     # anzeige -> alle spektrogramme nebeneinander, alle means darunter in einem fenster
+# from music21 import stream, chord, pitch, metadata
+# from scipy.spatial.distance import cdist
+# # Funktion, um Frequenz in Noten und Cent-Abweichung zu konvertieren
 # def frequency_to_pitch_and_cents(frequency):
 #     p = pitch.Pitch()
 #     p.frequency = frequency
 #     cent_diff = round(p.microtone.cents)  # Cent-Abweichung
 #     return p, cent_diff
-# def write_score(frequencies,title):
+# def write_score(frequencyArray,title,names,neworder):
 #     # Beispiel: Eingabe eines NumPy-Arrays mit 8 Frequenzen
 #     #frequencies = np.array([440, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.26])    
 #     # Konvertiere Frequenzen in Noten und Cent-Abweichungen
-#     pitches = []
-#     cent_values = []
-#     for freq in frequencies:
-#         p, cent_diff = frequency_to_pitch_and_cents(freq)
-#         pitches.append(p)
-#         cent_values.append(cent_diff)    
-#     # Erstelle einen Akkord aus den Noten
-#     akkord = chord.Chord(pitches)    
-#     # Füge Cent-Angaben als Text zu den einzelnen Noten im Akkord hinzu
-#     for i, p in enumerate(akkord.pitches):
-#         if cent_values[i] != 0:
-#             p.microtone = pitch.Microtone(cent_values[i])    
-#     # Erstelle einen Notenstream (Partitur) und füge den Akkord hinzu
-#     partitur = stream.Score()
-#     part = stream.Part()
-#     measure = stream.Measure()    
-#     # Füge den Akkord (alle Noten gleichzeitig) in die Partitur ein
-#     akkord.addLyric(" ".join([f"{cent} c" for cent in cent_values]))  # Füge Cent-Text hinzu
-#     measure.append(akkord)
-#     part.append(measure)
-#     partitur.append(part)    
-#     # Zeige die Partitur an (falls MuseScore oder ein MusicXML-Viewer installiert ist)
-#     #partitur.show()    
+#     numberOfChords = frequencyArray.shape[1]
+    
+#     score = stream.Score()
+#     #partitur = stream.Score()
+#     #part = stream.Part()
+#     #measure = stream.Measure()     
+#     for nf in range(numberOfChords):
+#         print(nf)
+#         frequencies = frequencyArray[:,nf]
+#         pitches = []
+#         cent_values = []
+#         for freq in frequencies:
+#             p, cent_diff = frequency_to_pitch_and_cents(freq)
+#             pitches.append(p)
+#             cent_values.append(cent_diff)    
+#         # Erstelle einen Akkord aus den Noten
+#         akkord = chord.Chord(pitches)    
+#         # Füge Cent-Angaben als Text zu den einzelnen Noten im Akkord hinzu
+#         for i, p in enumerate(akkord.pitches):
+#             if cent_values[i] != 0:
+#                 p.microtone = pitch.Microtone(cent_values[i])    
+#         # Erstelle einen Notenstream (Partitur) und füge den Akkord hinzu
+           
+#         # Füge den Akkord (alle Noten gleichzeitig) in die Partitur ein
+#         akkord.addLyric("".join([f"{cent}," for cent in cent_values]))  # Füge Cent-Text hinzu
+#         #measure.append(akkord)
+#         #part.append(measure)
+#         #partitur.append(part) 
+#         score.append(akkord)
+#         # Zeige die Partitur an (falls MuseScore oder ein MusicXML-Viewer installiert ist)
+#         #partitur.show()    
+    
+    
 #     # Speichere die Partitur als MusicXML
-#     partitur.write('musicxml', fp=title+'.xml')
-# scorewriting = False
+#     #partitur.write('musicxml', fp=title+'.xml')
+#     uberschrift = '_'
+#     for ii in neworder:
+#         uberschrift=uberschrift+names[ii]+'_'
+#     #score.metadata = metadata.Metadata()
+#     #score.metadata.title(uberschrift)
+#     score.write('musicxml',fp=title+'.xml')
+# #frequencyArray = FF[0,:,:] # frequenzen x stimmen
+
+# def frequency_to_midi(frequencies):
+#     return 69 + 12 * np.log2(frequencies / 440.0)
+# def find_optimal_chord_order(frequency_matrix):
+#     # Wandle die Frequenzen in den gewünschten Raum um (MIDI-Noten oder Oktaven)
+#     #if method == 'midi':
+#     transformed_matrix = frequency_to_midi(frequency_matrix)
+#     #elif method == 'octave':
+#     #    transformed_matrix = frequency_to_octave(frequency_matrix)
+#     #else:
+#     #    raise ValueError("Method must be 'midi' or 'octave'")
+    
+#     # Berechne die paarweisen Distanzen zwischen den Akkorden
+#     distances = cdist(transformed_matrix, transformed_matrix, metric='euclidean')
+    
+#     # Finde die Reihenfolge, die die Gesamtdistanz minimiert (Nearest Neighbor Ansatz)
+#     num_chords = len(frequency_matrix)
+#     current_chord = 0
+#     order = [current_chord]
+#     remaining = set(range(1, num_chords))
+
+#     while remaining:
+#         next_chord = min(remaining, key=lambda x: distances[current_chord, x])
+#         order.append(next_chord)
+#         remaining.remove(next_chord)
+#         current_chord = next_chord
+
+#     # Rückgabe der optimalen Reihenfolge
+#     return order
+
+# scorewriting = True
 # if scorewriting == True:
 #     f_array = np.zeros((len(vowels),len(names),8))
 #     for iv,vv in enumerate(vowels):#iv=0
 #         for iis,ss in enumerate(names):#iis=0
 #             frequ_array = FF[iv,:,iis]
 #             for kk,ff in enumerate(frequ_array):
-#                 if frequ_array[kk]<900:
+#                 if frequ_array[kk]<784:
 #                     f_array[iv,iis,kk]=frequ_array[kk]
-#                 elif frequ_array[kk]<900*2:
+#                 elif frequ_array[kk]<784*2:
 #                     f_array[iv,iis,kk]=frequ_array[kk]/2
-#                 elif frequ_array[kk]<900*4:
+#                 elif frequ_array[kk]<784*4:
 #                     f_array[iv,iis,kk]=frequ_array[kk]/4   
 #                 else:
 #                     f_array[iv,iis,kk]=frequ_array[kk]/8  
-#             write_score(np.sort(f_array[iv,iis,:]),'vowel_'+vowels[iv]+'_singer_'+names[iis])
+#             f_array[iv,iis,:]=np.sort(f_array[iv,iis,:])
+#             f_array[iv,iis,7]=f_array[iv,iis,7]/2
+#             f_array[iv,iis,5]=f_array[iv,iis,5]/2
+#             #f_array[iv,iis,7]=f_array[iv,iis,7]/2
+#         allchords = f_array[iv,:,:]    
+#         neworder = find_optimal_chord_order(allchords)        
+#         write_score(np.transpose(allchords[neworder,:]),'vowel_'+vowels[iv],names,neworder)
 
-
+# # TO HERE
 
 st.set_page_config(layout="wide")
 def streamlit_fun():
@@ -246,7 +302,7 @@ def streamlit_fun():
     #     with col:
     #         st.write(specFig_matrix[i][chosenVowel])
     st.write(fig_specs[chosenVowel])
-    cols = st.columns(7)
+    cols = st.columns(len(names))
     for i,col in enumerate(cols):
         with col:
             st.write(names[i])
@@ -265,7 +321,7 @@ def streamlit_fun():
     st.write('Typical values for vowel '+vowels[chosenVowel]+': '+str(peaks))
     figm.update_layout(xaxis=dict(range=[peaks[0]-100, peaks[7]+100]))
     st.write(figm)
-    cols2 = st.columns(7)
+    cols2 = st.columns(len(names))
     for i,col in enumerate(cols2):
         with col:
             st.write(names[i])
