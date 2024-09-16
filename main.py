@@ -25,7 +25,7 @@ import streamlit as st
 from PIL import Image
 
 #voicepath = "G:\\Andere Computer\\Mein Laptop\\Projekte\\Juta\\Reaper\\Renderings\\Vowels"
-voicepath = './data/Vowels'
+#voicepath = './data/Vowels'
 names = ['Gabriele','Ieva','Karolina M.','Karolina R.','Lina','Neringa','Beata','Onute']
 # new_data_load = False
 # if new_data_load:
@@ -96,6 +96,7 @@ for folder, arrays in folder_wav_data.items():
         mean_ffts.append(mean_fft)
         
     num_files = len(spectrograms)
+    print(num_files)
     fig_specs.append(make_subplots(
         rows=2, cols=num_files,
         subplot_titles=[names[i] for i in range(num_files)],#[f'File {i+1}' for i in range(num_files)],
