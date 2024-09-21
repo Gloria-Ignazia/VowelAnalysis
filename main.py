@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import librosa
 #import librosa.display
-import streamlit as st
+
 #import matplotlib.pyplot as plt
 from PIL import Image
 
@@ -59,22 +59,25 @@ names = ['Gabriele','Ieva','Karolina M.','Karolina R.','Lina','Neringa','Beata',
 #     np.savez("./data/folder_wav_data.npz",**folder_wav_data)
 # else:
 folder_wav_data=np.load("./data/folder_wav_data.npz")#"G:\\Andere Computer\\Mein Laptop\\Projekte\\Juta\\Python\\folder_wav_data.npz")
+Vc = len(folder_wav_data)
 
 n_fft = 2048
 hop_length = int(n_fft/4)
 fs = 44100
 sr = fs
 
+
+
 # Display the loaded NumPy arrays
 fig_specs = []
-specFig_matrix = [[None for _ in np.arange(4)] for _ in names]
+specFig_matrix = [[None for _ in np.arange(Vc)] for _ in names]
 vowCnt = 0
 allaudio = []
 vowels = []
-allmeans = [None for _ in np.arange(4)] 
+allmeans = [None for _ in np.arange(Vc)] 
 for folder, arrays in folder_wav_data.items():
     #print(folder)
-    print(arrays.shape)
+    
     vowels.append(folder)
     #print(f"Folder: {folder}, Number of WAV files: {len(arrays)}")
     allaudio.append([])
@@ -96,7 +99,7 @@ for folder, arrays in folder_wav_data.items():
         mean_ffts.append(mean_fft)
         
     num_files = len(spectrograms)
-    print(num_files)
+    
     fig_specs.append(make_subplots(
         rows=2, cols=num_files,
         subplot_titles=[names[i] for i in range(num_files)],#[f'File {i+1}' for i in range(num_files)],
@@ -141,6 +144,7 @@ typicalv=np.array(['i','e','a','o','u','ae','a_','e_'])
 
 # find formant frequencies
 from scipy.signal import find_peaks
+from scipy.ndimage import uniform_filter1d
 tolerance = 300
 timax = np.arange(2*fs)*1/fs
 sines = np.zeros((len(vowels),len(names),2*fs))
@@ -150,18 +154,29 @@ for ii,vow in enumerate(vowels):
     idxt = np.argwhere(typicalv==vow)
     peaks = formant_frequencies[idxt[0][0],:]
     for jj,singer in enumerate(names):
-        peak_indices,_=find_peaks(allmeans[ii][jj])
-        found_peaks=[]
-        for ip,p in enumerate(peaks):
-            tol = int(p*0.1)
-            fidx = np.argmin(np.abs(p-frequs))
-            fidx_min =  np.argmin(np.abs((p-tol)-frequs))
-            fidx_max =  np.argmin(np.abs((p+tol)-frequs))
-            #frequs[fidx_min]
-            curve = allmeans[ii][jj][fidx_min:fidx_max]
-           
-            FF[ii,ip,jj]= frequs[np.argmax(curve)+fidx_min]
-            FFi[ii,ip,jj]=np.argmax(curve)+fidx_min
+        #peak_indices,_=find_peaks(allmeans[ii][jj])
+        #found_peaks=[]
+        # for ip,p in enumerate(peaks):
+        #     tol = int(p*0.1)
+        #     fidx = np.argmin(np.abs(p-frequs))
+        #     fidx_min =  np.argmin(np.abs((p-tol)-frequs))
+        #     fidx_max =  np.argmin(np.abs((p+tol)-frequs))
+        #     #frequs[fidx_min]
+        #     curve = allmeans[ii][jj][fidx_min:fidx_max]          
+        #     FF[ii,ip,jj]= frequs[np.argmax(curve)+fidx_min]
+        #     FFi[ii,ip,jj]=np.argmax(curve)+fidx_min
+        curve = allmeans[ii][jj]    
+        curve_smooth = uniform_filter1d(curve,size=15)
+        curve_smooth_=curve_smooth.copy()
+        dd = np.argwhere(frequs>200)
+        curve_smooth_[0:dd[0][0]]=-40.
+        peak_indices,_=find_peaks(curve_smooth_,width = 10,rel_height=2)
+        allpeaks = frequs[peak_indices]
+        FF[ii,:,jj]= allpeaks[:8]
+        FFi[ii,:,jj]=peak_indices[:8]
+        
+            
+        for ip in range(FF.shape[1]):    
             sines[ii,jj,:]=sines[ii,jj,:]+np.sin(2*np.pi*FF[ii,ip,jj]*timax)
             #transposed -->
             fo = FF[ii,ip,jj].copy()
@@ -171,25 +186,56 @@ for ii,vow in enumerate(vowels):
                 ft=fo/2
             elif fo<784*4:
                 ft=fo/4   
+            elif fo<784*8:
+                ft=fo/8   
+            elif fo<784*16:
+                ft=fo/8   
             else:
-                ft=fo/8 
+                ft=fo/32
             sines_transp[ii,jj,:]=sines_transp[ii,jj,:]+np.sin(2*np.pi*ft*timax)
+            
 sines = sines/np.max(np.abs(sines))
 sines_transp = sines_transp/np.max(np.abs(sines_transp))
 
-#  # COMMENT FROM HERE       
-# #vowels = np.array(['a','ae','e','i'])# wie in Ordner vowels sortiert   
-# # Seitenaufbau:
-#     # sidebar -> auswahl vowel
-#     # anzeige -> alle spektrogramme nebeneinander, alle means darunter in einem fenster
-# from music21 import stream, chord, pitch, metadata
-# from scipy.spatial.distance import cdist
-# # Funktion, um Frequenz in Noten und Cent-Abweichung zu konvertieren
-# def frequency_to_pitch_and_cents(frequency):
-#     p = pitch.Pitch()
-#     p.frequency = frequency
-#     cent_diff = round(p.microtone.cents)  # Cent-Abweichung
-#     return p, cent_diff
+
+# FIND FORMANTS
+
+
+
+# for vv,vvtext in enumerate(vowels):
+#     fig = go.Figure()
+#     for ss,sstext in enumerate(names): 
+#         curve = allmeans[vv][ss]
+#         curve_smooth = uniform_filter1d(curve,size=15)
+#         curve_smooth_=curve_smooth.copy()
+#         dd = np.argwhere(frequs>200)
+#         curve_smooth_[0:dd[0][0]]=-40.
+#         peak_indices,_=find_peaks(curve_smooth_,width = 10,rel_height=2)
+        #fig.add_traces(go.Scatter(x=frequs, y=curve))#, mode='lines'))
+        
+        # fig.add_trace(go.Scatter(x=frequs, y=curve_smooth,name=names[ss]))#, mode='lines'))
+        # fig.add_trace(go.Scatter(x=frequs[peak_indices],y=curve_smooth[peak_indices],mode='markers'))
+        # fig.update_layout(title=vowels[vv])
+        # fig.write_html(vvtext+'.html')
+        
+
+
+  # COMMENT FROM HERE       
+#vowels = np.array(['a','ae','e','i'])# wie in Ordner vowels sortiert   
+# Seitenaufbau:
+    # sidebar -> auswahl vowel
+    # anzeige -> alle spektrogramme nebeneinander, alle means darunter in einem fenster
+#from music21 import stream, chord, pitch, metadata
+from music21 import pitch
+
+
+from scipy.spatial.distance import cdist
+# Funktion, um Frequenz in Noten und Cent-Abweichung zu konvertieren
+def frequency_to_pitch_and_cents(frequency):
+    p = pitch.Pitch()
+    p.frequency = frequency
+    cent_diff = round(p.microtone.cents)  # Cent-Abweichung
+    return p, cent_diff
 # def write_score(frequencyArray,title,names,neworder):
 #     # Beispiel: Eingabe eines NumPy-Arrays mit 8 Frequenzen
 #     #frequencies = np.array([440, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.26])    
@@ -201,7 +247,7 @@ sines_transp = sines_transp/np.max(np.abs(sines_transp))
 #     #part = stream.Part()
 #     #measure = stream.Measure()     
 #     for nf in range(numberOfChords):
-#         print(nf)
+        
 #         frequencies = frequencyArray[:,nf]
 #         pitches = []
 #         cent_values = []
@@ -234,64 +280,75 @@ sines_transp = sines_transp/np.max(np.abs(sines_transp))
 #         uberschrift=uberschrift+names[ii]+'_'
 #     #score.metadata = metadata.Metadata()
 #     #score.metadata.title(uberschrift)
-#     score.write('musicxml',fp=title+'.xml')
-# #frequencyArray = FF[0,:,:] # frequenzen x stimmen
+#     score.write('musicxml',fp=title+uberschrift+'.xml')
+#frequencyArray = FF[0,:,:] # frequenzen x stimmen
 
-# def frequency_to_midi(frequencies):
-#     return 69 + 12 * np.log2(frequencies / 440.0)
-# def find_optimal_chord_order(frequency_matrix):
-#     # Wandle die Frequenzen in den gewünschten Raum um (MIDI-Noten oder Oktaven)
-#     #if method == 'midi':
-#     transformed_matrix = frequency_to_midi(frequency_matrix)
-#     #elif method == 'octave':
-#     #    transformed_matrix = frequency_to_octave(frequency_matrix)
-#     #else:
-#     #    raise ValueError("Method must be 'midi' or 'octave'")
+def frequency_to_midi(frequencies):
+    return 69 + 12 * np.log2(frequencies / 440.0)
+def find_optimal_chord_order(frequency_matrix):
+    # Wandle die Frequenzen in den gewünschten Raum um (MIDI-Noten oder Oktaven)
+    #if method == 'midi':
+    transformed_matrix = frequency_to_midi(frequency_matrix)
+    #elif method == 'octave':
+    #    transformed_matrix = frequency_to_octave(frequency_matrix)
+    #else:
+    #    raise ValueError("Method must be 'midi' or 'octave'")
     
-#     # Berechne die paarweisen Distanzen zwischen den Akkorden
-#     distances = cdist(transformed_matrix, transformed_matrix, metric='euclidean')
-    
-#     # Finde die Reihenfolge, die die Gesamtdistanz minimiert (Nearest Neighbor Ansatz)
-#     num_chords = len(frequency_matrix)
-#     current_chord = 0
-#     order = [current_chord]
-#     remaining = set(range(1, num_chords))
+    # Berechne die paarweisen Distanzen zwischen den Akkorden
+    distances = cdist(transformed_matrix, transformed_matrix, metric='euclidean')
+    # Finde die Reihenfolge, die die Gesamtdistanz minimiert (Nearest Neighbor Ansatz)
+    num_chords = len(frequency_matrix)
+    current_chord = 0
+    order = [current_chord]
+    remaining = set(range(1, num_chords))
 
-#     while remaining:
-#         next_chord = min(remaining, key=lambda x: distances[current_chord, x])
-#         order.append(next_chord)
-#         remaining.remove(next_chord)
-#         current_chord = next_chord
+    while remaining:
+        next_chord = min(remaining, key=lambda x: distances[current_chord, x])
+        order.append(next_chord)
+        remaining.remove(next_chord)
+        current_chord = next_chord
 
-#     # Rückgabe der optimalen Reihenfolge
-#     return order
+    # Rückgabe der optimalen Reihenfolge
+    return order
+def get_distance(frequency_matrix):
+    transformed_matrix = frequency_to_midi(frequency_matrix)
+    distances = cdist(transformed_matrix, transformed_matrix, metric='euclidean')
+    return distances
 
-# scorewriting = True
-# if scorewriting == True:
-#     f_array = np.zeros((len(vowels),len(names),8))
-#     for iv,vv in enumerate(vowels):#iv=0
-#         for iis,ss in enumerate(names):#iis=0
-#             frequ_array = FF[iv,:,iis]
-#             for kk,ff in enumerate(frequ_array):
-#                 if frequ_array[kk]<784:
-#                     f_array[iv,iis,kk]=frequ_array[kk]
-#                 elif frequ_array[kk]<784*2:
-#                     f_array[iv,iis,kk]=frequ_array[kk]/2
-#                 elif frequ_array[kk]<784*4:
-#                     f_array[iv,iis,kk]=frequ_array[kk]/4   
-#                 else:
-#                     f_array[iv,iis,kk]=frequ_array[kk]/8  
-#             f_array[iv,iis,:]=np.sort(f_array[iv,iis,:])
-#             f_array[iv,iis,7]=f_array[iv,iis,7]/2
-#             f_array[iv,iis,5]=f_array[iv,iis,5]/2
-#             #f_array[iv,iis,7]=f_array[iv,iis,7]/2
-#         allchords = f_array[iv,:,:]    
-#         neworder = find_optimal_chord_order(allchords)        
-#         write_score(np.transpose(allchords[neworder,:]),'vowel_'+vowels[iv],names,neworder)
+   
+
+f_array = np.zeros((len(vowels),len(names),8))
+voweldistances = np.zeros((len(names),len(names),len(vowels)))
+neworders = np.zeros((len(vowels),len(names)),dtype=int)
+for iv,vv in enumerate(vowels):#iv=0
+    for iis,ss in enumerate(names):#iis=0
+        frequ_array = FF[iv,:,iis]
+        for kk,ff in enumerate(frequ_array):
+            if frequ_array[kk]<784:
+                f_array[iv,iis,kk]=frequ_array[kk]
+            elif frequ_array[kk]<784*2:
+                f_array[iv,iis,kk]=frequ_array[kk]/2
+            elif frequ_array[kk]<784*4:
+                f_array[iv,iis,kk]=frequ_array[kk]/4  
+            elif frequ_array[kk]<784*8:
+                f_array[iv,iis,kk]=frequ_array[kk]/8      
+            else:
+                f_array[iv,iis,kk]=frequ_array[kk]/16 
+        f_array[iv,iis,:]=np.sort(f_array[iv,iis,:])
+        f_array[iv,iis,7]=f_array[iv,iis,7]/2
+        f_array[iv,iis,5]=f_array[iv,iis,5]/2
+        #f_array[iv,iis,7]=f_array[iv,iis,7]/2
+    allchords = f_array[iv,:,:]   
+    neworder = find_optimal_chord_order(allchords)
+    neworders[iv,:]=neworder
+    voweldistances[:,:,iv]=get_distance(allchords[neworder,:])        
+    #write_score(np.transpose(allchords[neworder,:]),'vowel_'+vowels[iv],names,neworder)
 
 # # TO HERE
-
+import streamlit as st
+import pandas as pd
 st.set_page_config(layout="wide")
+
 def streamlit_fun():
     # sidebar selectbox and radio
     whichVowel = st.sidebar.radio("Vowel: ",vowels)
@@ -313,13 +370,13 @@ def streamlit_fun():
     for ii,nn in enumerate(names):
         #print(ii)
         #print(nn)
-        curve = allmeans[chosenVowel][ii]
+        curve = uniform_filter1d(allmeans[chosenVowel][ii],size=15)
         figm.add_trace(go.Scatter(x=frequs, y=curve, mode='lines', name=nn))
         figm.add_trace(go.Scatter(x=FF[chosenVowel,:,ii],y=curve[FFi[chosenVowel,:,ii]],mode='markers'))
     st.write('Mean FFT. Click on the names of the singers to make them invisible.')
     idxt = np.argwhere(typicalv==whichVowel)
     peaks = formant_frequencies[idxt[0][0],:]
-    st.write('Typical values for vowel '+vowels[chosenVowel]+': '+str(peaks))
+    #st.write('Typical values for vowel '+vowels[chosenVowel]+': '+str(peaks))
     figm.update_layout(xaxis=dict(range=[peaks[0]-100, peaks[7]+100]))
     st.write(figm)
     cols2 = st.columns(len(names))
@@ -333,8 +390,18 @@ def streamlit_fun():
             st.write(names[i]+' transposed')
             #st.write(specFig_matrix[i][chosenVowel])
             st.audio(sines_transp[chosenVowel,i,:],sample_rate=fs)
-    image = Image.open('./data/images/a_beata.png')
-    st.image(image, caption='Akkord mit Cent-Abweichungen')
+    
+    data_rounded = np.round(voweldistances[:,:,chosenVowel], 1)
+    # Convert the numpy array to a pandas DataFrame for better display in Streamlit
+    sortednames = [names[i] for i in neworders[chosenVowel,:]]
+    df = pd.DataFrame(data_rounded, columns=sortednames,index = sortednames)# noch falsch!!
+
+    # Display the DataFrame in Streamlit
+    st.write('Distances:')
+    st.dataframe(df)
+
+    image = Image.open('./data/images/a.png')
+    st.image(image, caption='Sortierte Akkorde mit Cent-Abweichungen')
 
 streamlit_fun()
     
