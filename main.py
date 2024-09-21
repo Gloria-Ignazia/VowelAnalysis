@@ -320,6 +320,7 @@ def get_distance(frequency_matrix):
 f_array = np.zeros((len(vowels),len(names),8))
 voweldistances = np.zeros((len(names),len(names),len(vowels)))
 neworders = np.zeros((len(vowels),len(names)),dtype=int)
+centerchords = np.zeros((len(vowels),8))
 for iv,vv in enumerate(vowels):#iv=0
     for iis,ss in enumerate(names):#iis=0
         frequ_array = FF[iv,:,iis]
@@ -341,8 +342,13 @@ for iv,vv in enumerate(vowels):#iv=0
     allchords = f_array[iv,:,:]   
     neworder = find_optimal_chord_order(allchords)
     neworders[iv,:]=neworder
-    voweldistances[:,:,iv]=get_distance(allchords[neworder,:])        
+    voweldistances[:,:,iv]=get_distance(allchords[neworder,:])   
+    centerchords[iv,:]=  allchords[neworder[4],:]
+    
     #write_score(np.transpose(allchords[neworder,:]),'vowel_'+vowels[iv],names,neworder)
+
+#inbetween vowel distances
+centerchorddistance=get_distance(centerchords)
 
 # # TO HERE
 import streamlit as st
@@ -395,13 +401,24 @@ def streamlit_fun():
     # Convert the numpy array to a pandas DataFrame for better display in Streamlit
     sortednames = [names[i] for i in neworders[chosenVowel,:]]
     df = pd.DataFrame(data_rounded, columns=sortednames,index = sortednames)# noch falsch!!
-
     # Display the DataFrame in Streamlit
     st.write('Distances:')
     st.dataframe(df)
 
+    
+
     image = Image.open('./data/images/a.png')
     st.image(image, caption='Sortierte Akkorde mit Cent-Abweichungen')
+
+    st.write('Distances inbetween Chords:')
+    data_rounded2 = np.round(centerchorddistance, 1)
+    # Convert the numpy array to a pandas DataFrame for better display in Streamlit
+    #sortednames = [names[i] for i in neworders[chosenVowel,:]]
+    df = pd.DataFrame(data_rounded2, columns=vowels,index = vowels)# noch falsch!!
+
+    # Display the DataFrame in Streamlit
+    st.write('Distances:')
+    st.dataframe(df)
 
 streamlit_fun()
     
