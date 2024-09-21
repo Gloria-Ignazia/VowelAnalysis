@@ -321,6 +321,8 @@ f_array = np.zeros((len(vowels),len(names),8))
 voweldistances = np.zeros((len(names),len(names),len(vowels)))
 neworders = np.zeros((len(vowels),len(names)),dtype=int)
 centerchords = np.zeros((len(vowels),8))
+firstchords = np.zeros((len(vowels),8))
+lastchords = np.zeros((len(vowels),8))
 for iv,vv in enumerate(vowels):#iv=0
     for iis,ss in enumerate(names):#iis=0
         frequ_array = FF[iv,:,iis]
@@ -344,11 +346,28 @@ for iv,vv in enumerate(vowels):#iv=0
     neworders[iv,:]=neworder
     voweldistances[:,:,iv]=get_distance(allchords[neworder,:])   
     centerchords[iv,:]=  allchords[neworder[4],:]
+    firstchords[iv,:]=  allchords[neworder[0],:]
+    lastchords[iv,:]=  allchords[neworder[7],:]
     
     #write_score(np.transpose(allchords[neworder,:]),'vowel_'+vowels[iv],names,neworder)
 
 #inbetween vowel distances
 centerchorddistance=get_distance(centerchords)
+
+# from each last to each first
+distances = np.zeros((8,8))
+vowstringlast= vowels.copy()
+vowstringfirst = vowels.copy()
+for iv,vv in enumerate(vowels):#iv=0
+    vowstringlast[iv]=vowstringlast[iv]+'_last'
+    vowstringfirst[iv]=vowstringfirst[iv]+'_first'
+    lastm = lastchords[iv,:]
+    transformed_matrix1 = frequency_to_midi(lastm)
+    
+    for iv2,vv2 in enumerate(vowels):#iv=0
+        firstm = firstchords[iv2,:]
+        transformed_matrix2 = frequency_to_midi(firstm)
+        distances[iv,iv2] =np.linalg.norm(lastm - firstm)
 
 # # TO HERE
 import streamlit as st
@@ -405,17 +424,23 @@ def streamlit_fun():
     st.write('Distances:')
     st.dataframe(df)
 
+    st.write('Distances from last chord of a vowel to first of all chords:')
+    data_rounded3 = np.round(distances, 1)
+    # Convert the numpy array to a pandas DataFrame for better display in Streamlit
+    #sortednames = [names[i] for i in neworders[chosenVowel,:]]
     
+    df3 = pd.DataFrame(data_rounded3, columns=vowstringfirst,index = vowstringlast)# noch falsch!!
+    # Display the DataFrame in Streamlit
+    st.dataframe(df3)
 
     image = Image.open('./data/images/a.png')
     st.image(image, caption='Sortierte Akkorde mit Cent-Abweichungen')
 
-    st.write('Distances inbetween Chords:')
+    st.write('Distances inbetween center of Chords:')
     data_rounded2 = np.round(centerchorddistance, 1)
     # Convert the numpy array to a pandas DataFrame for better display in Streamlit
     #sortednames = [names[i] for i in neworders[chosenVowel,:]]
     df = pd.DataFrame(data_rounded2, columns=vowels,index = vowels)# noch falsch!!
-
     # Display the DataFrame in Streamlit
     st.write('Distances:')
     st.dataframe(df)
