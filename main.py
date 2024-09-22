@@ -285,7 +285,7 @@ def frequency_to_pitch_and_cents(frequency):
 
 def frequency_to_midi(frequencies):
     return 69 + 12 * np.log2(frequencies / 440.0)
-def find_optimal_chord_order(frequency_matrix):
+def find_optimal_chord_order(frequency_matrix):#frequency_matrix=allchords 
     # Wandle die Frequenzen in den gewünschten Raum um (MIDI-Noten oder Oktaven)
     #if method == 'midi':
     transformed_matrix = frequency_to_midi(frequency_matrix)
@@ -296,6 +296,12 @@ def find_optimal_chord_order(frequency_matrix):
     
     # Berechne die paarweisen Distanzen zwischen den Akkorden
     distances = cdist(transformed_matrix, transformed_matrix, metric='euclidean')
+    # diste = np.zeros((8,8))
+    # for ii in np.arange(8):
+    #     for jj in np.arange(8):
+    #         diste[ii,jj]=np.linalg.norm(transformed_matrix[ii,:]-transformed_matrix[jj,:])
+    
+    
     # Finde die Reihenfolge, die die Gesamtdistanz minimiert (Nearest Neighbor Ansatz)
     num_chords = len(frequency_matrix)
     current_chord = 0
@@ -367,7 +373,7 @@ for iv,vv in enumerate(vowels):#iv=0
     for iv2,vv2 in enumerate(vowels):#iv=0
         firstm = firstchords[iv2,:]
         transformed_matrix2 = frequency_to_midi(firstm)
-        distances[iv,iv2] =np.linalg.norm(lastm - firstm)
+        distances[iv,iv2] =np.linalg.norm(transformed_matrix1-transformed_matrix2)
 
 # # TO HERE
 import streamlit as st
